@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(ownerId) {
+      return isSignedIn() && request.auth.uid == ownerId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity Validations
+    function isValidInvoice(data) {
+      return data.keys().hasAll(['invoiceNumber', 'totalAmount', 'invoiceDate', 'status', 'ownerId']) &&
+             data.invoiceNumber is string && data.invoiceNumber.size() <= 64 &&
+             data.totalAmount is number &&
+             data.status in ['draft', 'sent', 'paid', 'overdue'] &&
+             data.ownerId == request.auth.uid;
+    }
+
+    function isValidSetting(data) {
+      return data.keys().hasAll(['companyName', 'nextInvoiceNumber']) &&
+             data.companyName is string && data.companyName.size() <= 200 &&
+             data.nextInvoiceNumber is number;
+    }
+
+    // Invoices
+    match /invoices/{invoiceId} {
+      allow get: if isSignedIn() && isOwner(existing().ownerId);
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      
+      allow create: if isSignedIn() && 
+                      isValidId(invoiceId) && 
+                      isValidInvoice(incoming()) &&
+                      incoming().createdAt == request.time;
+      
+      allow update: if isSignedIn() && 
+                      isOwner(existing().ownerId) &&
+                      isValidInvoice(incoming()) &&
+                      incoming().ownerId == existing().ownerId &&
+                      incoming().updatedAt == request.time &&
+                      // Prevent changing invoice number once created
+                      incoming().invoiceNumber == existing().invoiceNumber;
+      
+      allow delete: if isSignedIn() && isOwner(existing().ownerId);
+    }
+
+    // Settings
+    match /settings/{userId} {
+      allow get, write: if isSignedIn() && request.auth.uid == userId;
+    }
+  }
+}

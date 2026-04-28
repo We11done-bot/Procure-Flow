@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Financial billing document for clients.",
+      "type": "object",
+      "properties": {
+        "invoiceNumber": { "type": "string", "description": "Unique invoice identifier." },
+        "clientId": { "type": "string", "description": "Reference to the client." },
+        "clientName": { "type": "string", "description": "Display name of the client." },
+        "clientAddress": { "type": "string" },
+        "invoiceDate": { "type": "string", "format": "date-time" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "description": { "type": "string" },
+              "quantity": { "type": "number" },
+              "unitPrice": { "type": "number" },
+              "total": { "type": "number" }
+            }
+          }
+        },
+        "subtotal": { "type": "number" },
+        "taxRate": { "type": "number" },
+        "taxAmount": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["draft", "sent", "paid", "overdue"] },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["invoiceNumber", "totalAmount", "invoiceDate", "status"]
+    },
+    "AppSetting": {
+      "title": "App Settings",
+      "description": "Configuration for the application functionality.",
+      "type": "object",
+      "properties": {
+        "invoicePrefix": { "type": "string", "description": "Prefix for invoice numbering (e.g. INV-)." },
+        "nextInvoiceNumber": { "type": "number", "description": "The sequential number for the next invoice." },
+        "companyName": { "type": "string" },
+        "companyAddress": { "type": "string" },
+        "companyEmail": { "type": "string" },
+        "companyPhone": { "type": "string" },
+        "bankAccountName": { "type": "string" },
+        "bankAccountNumber": { "type": "string" },
+        "bankName": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "Individual invoices."
+    },
+    "/settings/{userId}": {
+      "schema": "AppSetting",
+      "description": "User-specific application settings."
+    }
+  }
+}
